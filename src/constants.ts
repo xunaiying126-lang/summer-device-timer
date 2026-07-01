@@ -12,7 +12,6 @@ import type { Child, ChildId, DeviceOption, DeviceType, LearningTask } from "./t
 
 export const WEEKLY_LIMIT_SECONDS = 90 * 60;
 export const LEARNING_REWARD_SECONDS = 10 * 60;
-export const LEARNING_REWARD_CHILD_ID: ChildId = "xsh";
 
 export const CHILDREN_BY_ID = {
   xsh: {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { LEARNING_REWARD_CHILD_ID, LEARNING_TASKS } from "../constants";
+import { LEARNING_TASKS } from "../constants";
 import {
   isCloudConfigured,
   saveCloudLearningTaskCompletions,
@@ -13,12 +13,14 @@ import {
 
 type LearningRewardsState = {
   readonly completions: readonly LearningTaskCompletion[];
+  readonly getChildCompletions: (childId: ChildId) => LearningTaskCompletion[];
   readonly getBonusSeconds: (childId: ChildId) => number;
-  readonly isTaskCompleted: (taskId: LearningTaskId) => boolean;
-  readonly rewardChildId: ChildId;
+  readonly getCompletedCount: (childId: ChildId) => number;
+  readonly getTodayCompletedCount: (childId: ChildId) => number;
+  readonly isTaskCompletedToday: (childId: ChildId, taskId: LearningTaskId) => boolean;
   readonly saveStatus: SyncStatus;
   readonly saveMessage: string;
-  readonly toggleTask: (taskId: LearningTaskId) => void;
+  readonly toggleTask: (childId: ChildId, taskId: LearningTaskId) => void;
 };
 
 function getErrorMessage(error: unknown): string {
@@ -26,7 +28,18 @@ function getErrorMessage(error: unknown): string {
 }
 
 function getCompletionKey(completion: LearningTaskCompletion): string {
-  return `${completion.childId}:${completion.taskId}`;
+  return completion.id;
+}
+
+function createCompletionId(childId: ChildId, taskId: LearningTaskId, dateKey: string): string {
+  return `${childId}:${taskId}:${dateKey}`;
+}
+
+function getDateKey(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function dedupeCompletions(
@@ -93,13 +106,22 @@ export function useLearningRewards(weekKey: string): LearningRewardsState {
     );
   }, [cloudEnabled, persistCompletions, weekKey]);
 
-  const completedTaskIds = useMemo(() => {
-    return new Set(
-      completions
-        .filter((completion) => completion.childId === LEARNING_REWARD_CHILD_ID)
-        .map((completion) => completion.taskId),
+  const todayKey = getDateKey();
+
+  const completionsByChild = useMemo(() => {
+    return completions.reduce<Record<ChildId, LearningTaskCompletion[]>>(
+      (grouped, completion) => {
+        grouped[completion.childId].push(completion);
+        return grouped;
+      },
+      { xsh: [], xmq: [] },
     );
   }, [completions]);
+
+  const todayCompletionKeys = useMemo(
+    () => new Set(completions.map((completion) => createCompletionId(completion.childId, completion.taskId, completion.dateKey))),
+    [completions],
+  );
 
   const saveToCloud = useCallback(
     (nextCompletions: readonly LearningTaskCompletion[]) => {
@@ -122,19 +144,20 @@ export function useLearningRewards(weekKey: string): LearningRewardsState {
   );
 
   const toggleTask = useCallback(
-    (taskId: LearningTaskId) => {
-      const isCompleted = completedTaskIds.has(taskId);
+    (childId: ChildId, taskId: LearningTaskId) => {
+      const dateKey = getDateKey();
+      const completionId = createCompletionId(childId, taskId, dateKey);
+      const isCompleted = todayCompletionKeys.has(completionId);
       const nextCompletions = isCompleted
-        ? completions.filter(
-            (completion) =>
-              completion.childId !== LEARNING_REWARD_CHILD_ID || completion.taskId !== taskId,
-          )
+        ? completions.filter((completion) => completion.id !== completionId)
         : [
             ...completions,
             {
+              id: completionId,
               taskId,
-              childId: LEARNING_REWARD_CHILD_ID,
+              childId,
               weekKey,
+              dateKey,
               completedAt: new Date().toISOString(),
             },
           ];
@@ -142,33 +165,46 @@ export function useLearningRewards(weekKey: string): LearningRewardsState {
       persistCompletions(nextCompletions);
       saveToCloud(nextCompletions);
     },
-    [completedTaskIds, completions, persistCompletions, saveToCloud, weekKey],
+    [completions, persistCompletions, saveToCloud, todayCompletionKeys, weekKey],
   );
 
   const getBonusSeconds = useCallback(
     (childId: ChildId) => {
-      if (childId !== LEARNING_REWARD_CHILD_ID) {
-        return 0;
-      }
-
-      return LEARNING_TASKS.reduce(
-        (total, task) => total + (completedTaskIds.has(task.id) ? task.rewardSeconds : 0),
-        0,
-      );
+      return completionsByChild[childId].reduce((total, completion) => {
+        const task = LEARNING_TASKS.find((item) => item.id === completion.taskId);
+        return total + (task?.rewardSeconds ?? 0);
+      }, 0);
     },
-    [completedTaskIds],
+    [completionsByChild],
   );
 
-  const isTaskCompleted = useCallback(
-    (taskId: LearningTaskId) => completedTaskIds.has(taskId),
-    [completedTaskIds],
+  const getChildCompletions = useCallback(
+    (childId: ChildId) => [...completionsByChild[childId]].sort((a, b) => b.completedAt.localeCompare(a.completedAt)),
+    [completionsByChild],
+  );
+
+  const getCompletedCount = useCallback(
+    (childId: ChildId) => completionsByChild[childId].length,
+    [completionsByChild],
+  );
+
+  const getTodayCompletedCount = useCallback(
+    (childId: ChildId) => completionsByChild[childId].filter((completion) => completion.dateKey === todayKey).length,
+    [completionsByChild, todayKey],
+  );
+
+  const isTaskCompletedToday = useCallback(
+    (childId: ChildId, taskId: LearningTaskId) => todayCompletionKeys.has(createCompletionId(childId, taskId, todayKey)),
+    [todayCompletionKeys, todayKey],
   );
 
   return {
     completions,
+    getChildCompletions,
     getBonusSeconds,
-    isTaskCompleted,
-    rewardChildId: LEARNING_REWARD_CHILD_ID,
+    getCompletedCount,
+    getTodayCompletedCount,
+    isTaskCompletedToday,
     saveStatus,
     saveMessage,
     toggleTask,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CHILDREN, CHILDREN_BY_ID, LEARNING_REWARD_SECONDS, WEEKLY_LIMIT_SECONDS } from "./constants";
+import { CHILDREN, CHILDREN_BY_ID, WEEKLY_LIMIT_SECONDS } from "./constants";
 import { ChildCard } from "./components/ChildCard";
 import { Header } from "./components/Header";
 import { LearningTasksPanel } from "./components/LearningTasksPanel";
@@ -159,16 +159,17 @@ export function App() {
         onReset={handleReset}
       />
 
-      {selectedChildId === learning.rewardChildId ? (
-        <LearningTasksPanel
-          bonusSeconds={learning.getBonusSeconds(selectedChildId)}
-          completedCount={Math.floor(learning.getBonusSeconds(selectedChildId) / LEARNING_REWARD_SECONDS)}
-          isTaskCompleted={learning.isTaskCompleted}
-          onToggleTask={learning.toggleTask}
-          syncMessage={learning.saveMessage}
-          syncStatus={learning.saveStatus}
-        />
-      ) : null}
+      <LearningTasksPanel
+        bonusSeconds={learning.getBonusSeconds(selectedChildId)}
+        child={selectedChild}
+        completions={learning.getChildCompletions(selectedChildId)}
+        completedCount={learning.getCompletedCount(selectedChildId)}
+        isTaskCompletedToday={(taskId) => learning.isTaskCompletedToday(selectedChildId, taskId)}
+        onToggleTask={(taskId) => learning.toggleTask(selectedChildId, taskId)}
+        syncMessage={learning.saveMessage}
+        syncStatus={learning.saveStatus}
+        todayCompletedCount={learning.getTodayCompletedCount(selectedChildId)}
+      />
 
       <section className="lower-grid">
         <RecordsList records={selectedRecords} onDelete={handleDeleteRecord} />

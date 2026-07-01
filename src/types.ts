@@ -36,9 +36,11 @@ export type LearningTask = {
 };
 
 export type LearningTaskCompletion = {
+  readonly id: string;
   readonly taskId: LearningTaskId;
   readonly childId: ChildId;
   readonly weekKey: string;
+  readonly dateKey: string;
   readonly completedAt: string;
 };
 

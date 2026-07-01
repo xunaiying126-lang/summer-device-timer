@@ -705,6 +705,44 @@ button:disabled {
   color: #fff;
 }
 
+.learning-history {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px dashed #cfe0e9;
+  border-radius: var(--radius);
+  background: #f8fcff;
+}
+
+.learning-history strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.learning-history ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.learning-history li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.learning-history p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .records-table {
   display: grid;
   overflow-x: auto;

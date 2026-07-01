@@ -130,11 +130,27 @@ export function isLearningTaskCompletion(value: unknown): value is LearningTaskC
   }
 
   return (
+    (value.id === undefined || isString(value.id)) &&
     isLearningTaskId(value.taskId) &&
     isChildId(value.childId) &&
     isString(value.weekKey) &&
+    (value.dateKey === undefined || isString(value.dateKey)) &&
     isIsoLikeDate(value.completedAt)
   );
+}
+
+function normalizeLearningTaskCompletion(value: LearningTaskCompletion): LearningTaskCompletion {
+  const dateKey = value.dateKey ?? value.completedAt.slice(0, 10);
+  const id = value.id ?? `${value.childId}:${value.taskId}:${dateKey}`;
+
+  return {
+    id,
+    taskId: value.taskId,
+    childId: value.childId,
+    weekKey: value.weekKey,
+    dateKey,
+    completedAt: value.completedAt,
+  };
 }
 
 export function parseLearningTaskCompletions(
@@ -147,6 +163,7 @@ export function parseLearningTaskCompletions(
 
   return value
     .filter(isLearningTaskCompletion)
+    .map(normalizeLearningTaskCompletion)
     .filter((completion) => completion.weekKey === weekKey);
 }
 
