@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isMyFamily(householdId) {
+      return householdId == "xu-family-2026-shujia-3b4ed";
+    }
+
+    function validStatePayload() {
+      return request.resource.data.keys().hasOnly(["payload", "updatedAtMs"])
+        && request.resource.data.payload is string
+        && request.resource.data.updatedAtMs is int;
+    }
+
+    match /families/{householdId}/weeks/{weekKey}/state/{docId} {
+      allow read: if isMyFamily(householdId)
+        && docId in ["records", "learning"];
+
+      allow create, update: if isMyFamily(householdId)
+        && docId in ["records", "learning"]
+        && validStatePayload();
+
+      allow delete: if false;
+    }
+
+    match /families/{householdId}/state/activeTimer {
+      allow read: if isMyFamily(householdId);
+
+      allow create, update: if isMyFamily(householdId)
+        && validStatePayload();
+
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
