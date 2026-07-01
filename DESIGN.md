@@ -75,8 +75,8 @@ All spacing derives from 4px.
 
 - Max content width: 1180px.
 - Desktop: two-column child cards, two-column lower panels.
-- Timer panel: main timer column plus device/task side column.
-- Mobile: all sections collapse to one column at 900px and below.
+- Tablet: timer panel collapses to one column around 1100px; child cards stay in two columns until about 760px.
+- Mobile: all primary sections collapse to one column at 760px and below, and records turn into stacked cards around 720px.
 
 ### Rules
 
@@ -108,7 +108,7 @@ All spacing derives from 4px.
 
 - Structure: task title, requirement, reward value, completion button.
 - Variants: pending and completed.
-- States: completed task turns green and cannot be completed twice in the same week.
+- States: completed task turns green; the same task can be checked again on a later day, so the child can repeat daily progress across the week.
 
 ## 6. Motion & Interaction
 

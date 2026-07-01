@@ -30,18 +30,18 @@ export function RecordsList({ records, onDelete }: RecordsListProps) {
           </div>
           {records.map((record) => (
             <div className="records-table__row" role="row" key={record.id}>
-              <span role="cell">{formatDateLabel(record.startTime)}</span>
-              <span role="cell">{formatTimeLabel(record.startTime)}</span>
-              <span role="cell">{formatTimeLabel(record.endTime)}</span>
-              <span role="cell">{record.deviceType}</span>
-              <span className={record.durationSeconds < 0 ? "duration-negative" : ""} role="cell">
+              <span data-label="日期" role="cell">{formatDateLabel(record.startTime)}</span>
+              <span data-label="开始时间" role="cell">{formatTimeLabel(record.startTime)}</span>
+              <span data-label="结束时间" role="cell">{formatTimeLabel(record.endTime)}</span>
+              <span data-label="设备" role="cell">{record.deviceType}</span>
+              <span data-label="使用时长" className={record.durationSeconds < 0 ? "duration-negative" : ""} role="cell">
                 {formatCompactDuration(record.durationSeconds)}
               </span>
-              <span role="cell">
+              <span data-label="来源" role="cell">
                 {record.isManual ? (record.manualKind === "subtract" ? "手动修正" : "补录") : "计时"}
                 {record.note ? <small>{record.note}</small> : null}
               </span>
-              <span role="cell">
+              <span data-label="操作" role="cell">
                 <button
                   className="icon-button icon-button--danger"
                   type="button"
