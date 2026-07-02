@@ -15,10 +15,8 @@ function recordsDocUrl(weekKey: string): string {
   return familyDocumentUrl(["weeks", weekKey, "state", "records"]);
 }
 
-const childIds: readonly ChildId[] = ["xsh", "xmq"];
-
-function activeTimerDocUrl(childId: ChildId): string {
-  return familyDocumentUrl(["state", `activeTimer-${childId}`]);
+function activeTimerDocUrl(): string {
+  return familyDocumentUrl(["state", "activeTimer"]);
 }
 
 function learningDocUrl(weekKey: string): string {
@@ -49,22 +47,41 @@ async function writeCloudRecords(weekKey: string, records: readonly UsageRecord[
   });
 }
 
-async function loadCloudActiveTimer(childId: ChildId): Promise<ActiveTimer | null> {
-  const document = await fetchJson(activeTimerDocUrl(childId));
-  const payload = getPayload(document);
+function isRecordValue(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
-  if (!payload) {
-    return null;
+function parseActiveTimersPayload(value: unknown): ActiveTimersByChild {
+  const legacyTimer = parseActiveTimer(value);
+  if (legacyTimer) {
+    return {
+      xsh: legacyTimer.childId === "xsh" ? legacyTimer : null,
+      xmq: legacyTimer.childId === "xmq" ? legacyTimer : null,
+    };
   }
 
-  const parsed: unknown = JSON.parse(payload);
-  const timer = parseActiveTimer(parsed);
-  return timer?.childId === childId ? timer : null;
+  if (!isRecordValue(value)) {
+    return { xsh: null, xmq: null };
+  }
+
+  const xshTimer = parseActiveTimer(value.xsh);
+  const xmqTimer = parseActiveTimer(value.xmq);
+  return {
+    xsh: xshTimer?.childId === "xsh" ? xshTimer : null,
+    xmq: xmqTimer?.childId === "xmq" ? xmqTimer : null,
+  };
 }
 
 async function loadCloudActiveTimers(): Promise<ActiveTimersByChild> {
-  const timers = await Promise.all(childIds.map((childId) => loadCloudActiveTimer(childId)));
-  return { xsh: timers[0] ?? null, xmq: timers[1] ?? null };
+  const document = await fetchJson(activeTimerDocUrl());
+  const payload = getPayload(document);
+
+  if (!payload) {
+    return { xsh: null, xmq: null };
+  }
+
+  const parsed: unknown = JSON.parse(payload);
+  return parseActiveTimersPayload(parsed);
 }
 
 async function loadCloudLearningTaskCompletions(weekKey: string): Promise<LearningTaskCompletion[]> {
@@ -178,11 +195,14 @@ export async function saveCloudActiveTimer(childId: ChildId, timer: ActiveTimer 
     return;
   }
 
-  await fetchJson(activeTimerDocUrl(childId), {
+  const currentTimers = await loadCloudActiveTimers();
+  const nextTimers: ActiveTimersByChild = { ...currentTimers, [childId]: timer };
+
+  await fetchJson(activeTimerDocUrl(), {
     method: "PATCH",
     body: JSON.stringify({
       fields: {
-        payload: { stringValue: JSON.stringify(timer) },
+        payload: { stringValue: JSON.stringify(nextTimers) },
         updatedAtMs: { integerValue: String(Date.now()) },
       },
     }),

@@ -42,11 +42,6 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
     saveActiveTimer(childId, timer);
   }, []);
 
-  const persistActiveTimers = useCallback((timers: ActiveTimersByChild) => {
-    setActiveTimers(timers);
-    childIds.forEach((childId) => saveActiveTimer(childId, timers[childId]));
-  }, []);
-
   useEffect(() => {
     persistRecords(loadRecords(weekKey));
   }, [persistRecords, weekKey]);
@@ -81,12 +76,30 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
     }
 
     return subscribeCloudActiveTimers(
-      (timers) => {
-        persistActiveTimers(timers);
+      (cloudTimers) => {
+        setActiveTimers((localTimers) => {
+          const nextTimers: ActiveTimersByChild = { ...cloudTimers };
+
+          childIds.forEach((childId) => {
+            const localTimer = localTimers[childId];
+            const cloudTimer = cloudTimers[childId];
+            const localTimerAlreadyRecorded = localTimer
+              ? records.some((record) => record.id === localTimer.id)
+              : false;
+
+            if (!cloudTimer && localTimer && localTimer.weekKey === weekKey && !localTimerAlreadyRecorded) {
+              nextTimers[childId] = localTimer;
+              saveTimerToCloud(childId, localTimer);
+            }
+          });
+
+          childIds.forEach((childId) => saveActiveTimer(childId, nextTimers[childId]));
+          return nextTimers;
+        });
       },
       () => undefined,
     );
-  }, [cloudEnabled, persistActiveTimers]);
+  }, [cloudEnabled, records, saveTimerToCloud, weekKey]);
 
   const getActiveTimer = useCallback(
     (childId: ChildId) => {
