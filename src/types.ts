@@ -6,6 +6,8 @@ export type TimerStatus = "running" | "paused";
 
 export type ManualKind = "add" | "subtract";
 
+export type AppMode = "child" | "parent";
+
 export type LearningTaskId =
   | "chinese-comprehension"
   | "chinese-words"

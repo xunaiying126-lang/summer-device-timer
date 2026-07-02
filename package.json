@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/create-entry-pages.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "deploy:vercel": "npm run build && npx vercel --prod",
     "deploy:netlify": "npm run build && npx netlify deploy --prod --dir=dist"

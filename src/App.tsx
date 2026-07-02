@@ -9,13 +9,16 @@ import { TimerPanel } from "./components/TimerPanel";
 import { WeeklyOverview } from "./components/WeeklyOverview";
 import { useDeviceTimer } from "./hooks/useDeviceTimer";
 import { useLearningRewards } from "./hooks/useLearningRewards";
-import type { ChildId, DeviceType } from "./types";
+import type { AppMode, ChildId, DeviceType } from "./types";
+import { getAppModeFromLocation } from "./utils/appMode";
 import { getWeekInfo } from "./utils/time";
 
 const DEFAULT_CHILD_ID: ChildId = "xsh";
 const DEFAULT_DEVICE: DeviceType = "电视";
 
 export function App() {
+  const appMode = useMemo<AppMode>(() => getAppModeFromLocation(window.location), []);
+  const isParentMode = appMode === "parent";
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [selectedChildId, setSelectedChildId] = useState<ChildId>(DEFAULT_CHILD_ID);
   const [selectedDevice, setSelectedDevice] = useState<DeviceType>(DEFAULT_DEVICE);
@@ -43,6 +46,10 @@ export function App() {
     const intervalId = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    document.title = isParentMode ? "家长后台 - 暑假电子产品时间管控" : "孩子端 - 暑假电子产品时间管控";
+  }, [isParentMode]);
 
   useEffect(() => {
     if (!timer.activeTimer || timer.activeTimer.weekKey !== weekInfo.weekKey) {
@@ -127,8 +134,8 @@ export function App() {
   };
 
   return (
-    <main className="app-shell">
-      <Header weekInfo={weekInfo} syncStatus={timer.syncStatus} syncMessage={timer.syncMessage} />
+    <main className={`app-shell app-shell--${appMode}`}>
+      <Header mode={appMode} weekInfo={weekInfo} syncStatus={timer.syncStatus} syncMessage={timer.syncMessage} />
 
       <section className="children-grid" aria-label="孩子选择">
         {CHILDREN.map((child) => (
@@ -146,6 +153,7 @@ export function App() {
       <TimerPanel
         activeElapsedSeconds={timer.activeElapsedSeconds}
         activeTimer={timer.activeTimer}
+        mode={appMode}
         selectedChild={selectedChild}
         selectedDevice={selectedDevice}
         weeklyLimitSeconds={selectedLimitSeconds}
@@ -155,8 +163,7 @@ export function App() {
         onPause={timer.pauseTimer}
         onResume={timer.resumeTimer}
         onEnd={handleEnd}
-        onOpenManual={() => setManualModalOpen(true)}
-        onReset={handleReset}
+        {...(isParentMode ? { onOpenManual: () => setManualModalOpen(true), onReset: handleReset } : {})}
       />
 
       <LearningTasksPanel
@@ -172,7 +179,7 @@ export function App() {
       />
 
       <section className="lower-grid">
-        <RecordsList records={selectedRecords} onDelete={handleDeleteRecord} />
+        <RecordsList records={selectedRecords} {...(isParentMode ? { onDelete: handleDeleteRecord } : {})} />
         <WeeklyOverview
           children={CHILDREN}
           getLimitSeconds={timer.getWeeklyLimitSeconds}
@@ -181,7 +188,7 @@ export function App() {
       </section>
 
       <ManualEntryModal
-        open={manualModalOpen}
+        open={isParentMode && manualModalOpen}
         defaultDevice={selectedDevice}
         onClose={() => setManualModalOpen(false)}
         onSubmit={handleManualSubmit}

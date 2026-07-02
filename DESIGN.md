@@ -4,6 +4,8 @@
 
 This is a calm family command center for summer screen-time agreements. It should feel clear enough for a parent to operate quickly and warm enough for a child to understand without anxiety. The signature is a pale-blue household dashboard with friendly rounded panels, blue-green action color, and learning/reward cues that feel encouraging rather than childish.
 
+The app has two linked role surfaces: a child-facing timer and learning check-in view, and a parent backend view for corrections, manual entries, deletion, and weekly reset. Both surfaces must feel like the same household system while clearly limiting destructive controls to the parent view.
+
 ## 2. Color
 
 ### Palette
@@ -91,6 +93,12 @@ All spacing derives from 4px.
 - Variants: primary, secondary, warning, ghost, danger ghost.
 - States: hover lift, disabled opacity, visible focus through browser outline.
 - Accessibility: use real `<button>` and clear labels.
+
+### Mode Switch
+
+- Structure: compact links for child view and parent backend.
+- States: active entry uses the primary tint and border.
+- Rule: child view never renders manual entry, weekly reset, or record deletion controls.
 
 ### Progress Bar
 

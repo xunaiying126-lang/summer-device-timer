@@ -1,5 +1,5 @@
 import { Pause, Play, Plus, RotateCcw, Square } from "lucide-react";
-import type { ActiveTimer, Child, DeviceType } from "../types";
+import type { ActiveTimer, AppMode, Child, DeviceType } from "../types";
 import { formatClock, formatCompactDuration } from "../utils/time";
 import { ProgressBar } from "./ProgressBar";
 import { DeviceSelector } from "./DeviceSelector";
@@ -8,6 +8,7 @@ import { ParentTip } from "./ParentTip";
 type TimerPanelProps = {
   readonly activeElapsedSeconds: number;
   readonly activeTimer: ActiveTimer | null;
+  readonly mode: AppMode;
   readonly selectedChild: Child;
   readonly selectedDevice: DeviceType;
   readonly weeklyLimitSeconds: number;
@@ -17,13 +18,14 @@ type TimerPanelProps = {
   readonly onPause: () => void;
   readonly onResume: () => void;
   readonly onEnd: () => void;
-  readonly onOpenManual: () => void;
-  readonly onReset: () => void;
+  readonly onOpenManual?: () => void;
+  readonly onReset?: () => void;
 };
 
 export function TimerPanel({
   activeElapsedSeconds,
   activeTimer,
+  mode,
   selectedChild,
   selectedDevice,
   weeklyLimitSeconds,
@@ -41,13 +43,14 @@ export function TimerPanel({
   const isSelectedTimer = activeTimer?.childId === selectedChild.id;
   const hasOtherTimer = Boolean(activeTimer && !isSelectedTimer);
   const canStart = !activeTimer && !isQuotaDone;
+  const canUseParentActions = mode === "parent" && onOpenManual && onReset;
   const timerDevice = isSelectedTimer && activeTimer ? activeTimer.deviceType : selectedDevice;
   const timerValue = isSelectedTimer ? activeElapsedSeconds : 0;
 
   return (
     <section className="timer-panel" aria-label={`正在管理：${selectedChild.name}`}>
       <div className="timer-panel__main">
-        <div className="section-label">正在管理：{selectedChild.name}</div>
+        <div className="section-label">{mode === "parent" ? "家长后台" : "正在管理"}：{selectedChild.name}</div>
         <div className="timer-display" aria-live="polite">
           {formatClock(timerValue)}
         </div>
@@ -96,16 +99,18 @@ export function TimerPanel({
           ) : null}
         </div>
 
-        <div className="parent-actions">
-          <button className="button button--ghost" type="button" onClick={onOpenManual}>
-            <Plus aria-hidden="true" size={18} />
-            补录时间
-          </button>
-          <button className="button button--danger-ghost" type="button" onClick={onReset}>
-            <RotateCcw aria-hidden="true" size={18} />
-            重置本周
-          </button>
-        </div>
+        {canUseParentActions ? (
+          <div className="parent-actions">
+            <button className="button button--ghost" type="button" onClick={onOpenManual}>
+              <Plus aria-hidden="true" size={18} />
+              补录时间
+            </button>
+            <button className="button button--danger-ghost" type="button" onClick={onReset}>
+              <RotateCcw aria-hidden="true" size={18} />
+              重置本周
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="timer-panel__side">
