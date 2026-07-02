@@ -1,19 +1,41 @@
-import type { AppMode } from "../types";
+import type { AppView, ChildId } from "../types";
 
-export function getAppModeFromLocation(location: Location): AppMode {
+const childPathById: Record<ChildId, string> = {
+  xsh: "xushihan",
+  xmq: "xumuqiu",
+};
+
+const childIdByPath: Record<string, ChildId> = {
+  xushihan: "xsh",
+  xumuqiu: "xmq",
+};
+
+export function getAppViewFromLocation(location: Location): AppView {
   const modeParam = new URLSearchParams(location.search).get("mode");
-  if (modeParam === "parent" || modeParam === "child") {
-    return modeParam;
+  const childParam = new URLSearchParams(location.search).get("child");
+  if (modeParam === "parent") {
+    return { mode: "parent", childId: null };
+  }
+
+  if (childParam === "xsh" || childParam === "xmq") {
+    return { mode: "child", childId: childParam };
   }
 
   const normalizedPath = location.pathname.replace(/\/+$/, "");
   if (normalizedPath.endsWith("/parent")) {
-    return "parent";
+    return { mode: "parent", childId: null };
   }
 
-  return "child";
+  const pathParts = normalizedPath.split("/");
+  const pathSegment = pathParts[pathParts.length - 1] ?? "";
+  const childId = childIdByPath[pathSegment];
+  if (childId) {
+    return { mode: "child", childId };
+  }
+
+  return { mode: "parent", childId: null };
 }
 
-export function getAppModeHref(mode: AppMode): string {
-  return `${import.meta.env.BASE_URL}${mode}/`;
+export function getChildEntryPath(childId: ChildId): string {
+  return childPathById[childId];
 }

@@ -1,4 +1,4 @@
-import type { ActiveTimer, ChildId, LearningTaskCompletion, UsageRecord } from "../types";
+import type { ActiveTimer, ActiveTimersByChild, ChildId, LearningTaskCompletion, UsageRecord } from "../types";
 import { parseActiveTimer, parseLearningTaskCompletions, parseRecords } from "../utils/guards";
 import { sortRecords } from "../utils/time";
 import {
@@ -15,8 +15,10 @@ function recordsDocUrl(weekKey: string): string {
   return familyDocumentUrl(["weeks", weekKey, "state", "records"]);
 }
 
-function activeTimerDocUrl(): string {
-  return familyDocumentUrl(["state", "activeTimer"]);
+const childIds: readonly ChildId[] = ["xsh", "xmq"];
+
+function activeTimerDocUrl(childId: ChildId): string {
+  return familyDocumentUrl(["state", `activeTimer-${childId}`]);
 }
 
 function learningDocUrl(weekKey: string): string {
@@ -47,8 +49,8 @@ async function writeCloudRecords(weekKey: string, records: readonly UsageRecord[
   });
 }
 
-async function loadCloudActiveTimer(): Promise<ActiveTimer | null> {
-  const document = await fetchJson(activeTimerDocUrl());
+async function loadCloudActiveTimer(childId: ChildId): Promise<ActiveTimer | null> {
+  const document = await fetchJson(activeTimerDocUrl(childId));
   const payload = getPayload(document);
 
   if (!payload) {
@@ -56,7 +58,13 @@ async function loadCloudActiveTimer(): Promise<ActiveTimer | null> {
   }
 
   const parsed: unknown = JSON.parse(payload);
-  return parseActiveTimer(parsed);
+  const timer = parseActiveTimer(parsed);
+  return timer?.childId === childId ? timer : null;
+}
+
+async function loadCloudActiveTimers(): Promise<ActiveTimersByChild> {
+  const timers = await Promise.all(childIds.map((childId) => loadCloudActiveTimer(childId)));
+  return { xsh: timers[0] ?? null, xmq: timers[1] ?? null };
 }
 
 async function loadCloudLearningTaskCompletions(weekKey: string): Promise<LearningTaskCompletion[]> {
@@ -103,15 +111,15 @@ export function subscribeCloudRecords(
   );
 }
 
-export function subscribeCloudActiveTimer(
-  onChange: (timer: ActiveTimer | null) => void,
+export function subscribeCloudActiveTimers(
+  onChange: (timers: ActiveTimersByChild) => void,
   onError: (error: Error) => void,
 ): () => void {
   if (!isCloudConfigured()) {
     return () => undefined;
   }
 
-  return subscribePoll(loadCloudActiveTimer, (timer) => JSON.stringify(timer), onChange, onError);
+  return subscribePoll(loadCloudActiveTimers, (timers) => JSON.stringify(timers), onChange, onError);
 }
 
 export function subscribeCloudLearningTaskCompletions(
@@ -165,12 +173,12 @@ export async function clearCloudChildRecords(childId: ChildId, weekKey: string):
   );
 }
 
-export async function saveCloudActiveTimer(timer: ActiveTimer | null): Promise<void> {
+export async function saveCloudActiveTimer(childId: ChildId, timer: ActiveTimer | null): Promise<void> {
   if (!isCloudConfigured()) {
     return;
   }
 
-  await fetchJson(activeTimerDocUrl(), {
+  await fetchJson(activeTimerDocUrl(childId), {
     method: "PATCH",
     body: JSON.stringify({
       fields: {

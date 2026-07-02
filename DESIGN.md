@@ -4,7 +4,7 @@
 
 This is a calm family command center for summer screen-time agreements. It should feel clear enough for a parent to operate quickly and warm enough for a child to understand without anxiety. The signature is a pale-blue household dashboard with friendly rounded panels, blue-green action color, and learning/reward cues that feel encouraging rather than childish.
 
-The app has two linked role surfaces: a child-facing timer and learning check-in view, and a parent backend view for corrections, manual entries, deletion, and weekly reset. Both surfaces must feel like the same household system while clearly limiting destructive controls to the parent view.
+The app has three linked data surfaces with separate public entries: Xu Shihan child view, Xu Muqiu child view, and the parent backend. Child views only show their own timer, learning check-in, records, and weekly overview. The parent backend can view both children and handle corrections, manual entries, deletion, and weekly reset. The surfaces share one household system while keeping destructive controls out of child views.
 
 ## 2. Color
 
@@ -94,11 +94,10 @@ All spacing derives from 4px.
 - States: hover lift, disabled opacity, visible focus through browser outline.
 - Accessibility: use real `<button>` and clear labels.
 
-### Mode Switch
+### Mode Identity
 
-- Structure: compact links for child view and parent backend.
-- States: active entry uses the primary tint and border.
-- Rule: child view never renders manual entry, weekly reset, or record deletion controls.
+- Structure: a compact identity chip that states the current child view or parent backend.
+- Rule: entries do not link to each other; child views never render parent backend links, manual entry, weekly reset, or record deletion controls.
 
 ### Progress Bar
 

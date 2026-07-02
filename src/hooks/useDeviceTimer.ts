@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { subscribeCloudActiveTimer, subscribeCloudRecords } from "../services/cloudSync";
-import type { ActiveTimer, ChildId, DeviceType, UsageRecord } from "../types";
-import { loadActiveTimer, loadRecords, saveActiveTimer, saveRecords } from "../utils/storage";
-import { createId, getActiveElapsedSeconds, sortRecords, sumRecordSeconds } from "../utils/time";
+import { subscribeCloudActiveTimers, subscribeCloudRecords } from "../services/cloudSync";
+import type { ActiveTimer, ActiveTimersByChild, ChildId, DeviceType, UsageRecord } from "../types";
+import { loadActiveTimers, loadRecords, saveActiveTimer, saveRecords } from "../utils/storage";
+import { createId, getActiveElapsedSeconds as getTimerElapsedSeconds, sortRecords, sumRecordSeconds } from "../utils/time";
 import { createManualRecord, type ManualRecordInput } from "../utils/timerRecords";
 import { useTimerCloudStatus } from "./useTimerCloudStatus";
 
 type WeeklyLimitSecondsByChild = Record<ChildId, number>;
+type EndTimerOptions = { readonly autoStopped?: boolean };
+
+const childIds: readonly ChildId[] = ["xsh", "xmq"];
 
 function getChildRecords(records: readonly UsageRecord[], childId: ChildId): UsageRecord[] {
   return records.filter((record) => record.childId === childId);
@@ -23,7 +26,7 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
     syncStatus,
   } = useTimerCloudStatus();
   const [records, setRecords] = useState<UsageRecord[]>(() => loadRecords(weekKey));
-  const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(() => loadActiveTimer());
+  const [activeTimers, setActiveTimers] = useState<ActiveTimersByChild>(() => loadActiveTimers());
 
   const persistRecords = useCallback(
     (nextRecords: readonly UsageRecord[]) => {
@@ -34,9 +37,14 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
     [weekKey],
   );
 
-  const persistActiveTimer = useCallback((timer: ActiveTimer | null) => {
-    setActiveTimer(timer);
-    saveActiveTimer(timer);
+  const persistActiveTimer = useCallback((childId: ChildId, timer: ActiveTimer | null) => {
+    setActiveTimers((currentTimers) => ({ ...currentTimers, [childId]: timer }));
+    saveActiveTimer(childId, timer);
+  }, []);
+
+  const persistActiveTimers = useCallback((timers: ActiveTimersByChild) => {
+    setActiveTimers(timers);
+    childIds.forEach((childId) => saveActiveTimer(childId, timers[childId]));
   }, []);
 
   useEffect(() => {
@@ -44,11 +52,14 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
   }, [persistRecords, weekKey]);
 
   useEffect(() => {
-    if (activeTimer && activeTimer.weekKey !== weekKey) {
-      persistActiveTimer(null);
-      saveTimerToCloud(null);
-    }
-  }, [activeTimer, persistActiveTimer, saveTimerToCloud, weekKey]);
+    childIds.forEach((childId) => {
+      const timer = activeTimers[childId];
+      if (timer && timer.weekKey !== weekKey) {
+        persistActiveTimer(childId, null);
+        saveTimerToCloud(childId, null);
+      }
+    });
+  }, [activeTimers, persistActiveTimer, saveTimerToCloud, weekKey]);
 
   useEffect(() => {
     if (!cloudEnabled) {
@@ -69,13 +80,25 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
       return () => undefined;
     }
 
-    return subscribeCloudActiveTimer(
-      (timer) => {
-        persistActiveTimer(timer);
+    return subscribeCloudActiveTimers(
+      (timers) => {
+        persistActiveTimers(timers);
       },
       () => undefined,
     );
-  }, [cloudEnabled, persistActiveTimer]);
+  }, [cloudEnabled, persistActiveTimers]);
+
+  const getActiveTimer = useCallback(
+    (childId: ChildId) => {
+      const timer = activeTimers[childId];
+      if (!timer || timer.weekKey !== weekKey) {
+        return null;
+      }
+
+      return timer;
+    },
+    [activeTimers, weekKey],
+  );
 
   const getRecordedSeconds = useCallback(
     (childId: ChildId) => sumRecordSeconds(getChildRecords(records, childId)),
@@ -86,31 +109,47 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
     (childId: ChildId) => {
       const recordedSeconds = getRecordedSeconds(childId);
       const weeklyLimitSeconds = weeklyLimitSecondsByChild[childId];
-      if (!activeTimer || activeTimer.childId !== childId || activeTimer.weekKey !== weekKey) {
+      const timer = getActiveTimer(childId);
+      if (!timer) {
         return Math.min(weeklyLimitSeconds, recordedSeconds);
       }
 
       return Math.min(
         weeklyLimitSeconds,
-        recordedSeconds + getActiveElapsedSeconds(activeTimer, nowMs),
+        recordedSeconds + getTimerElapsedSeconds(timer, nowMs),
       );
     },
-    [activeTimer, getRecordedSeconds, nowMs, weekKey, weeklyLimitSecondsByChild],
+    [getActiveTimer, getRecordedSeconds, nowMs, weeklyLimitSecondsByChild],
   );
 
   const getWeeklyLimitSeconds = useCallback((childId: ChildId) => weeklyLimitSecondsByChild[childId], [weeklyLimitSecondsByChild]);
 
-  const activeElapsedSeconds = useMemo(() => {
-    if (!activeTimer || activeTimer.weekKey !== weekKey) {
-      return 0;
-    }
+  const getActiveElapsedSeconds = useCallback(
+    (childId: ChildId) => {
+      const timer = getActiveTimer(childId);
+      if (!timer) {
+        return 0;
+      }
 
-    return getActiveElapsedSeconds(activeTimer, nowMs);
-  }, [activeTimer, nowMs, weekKey]);
+      return getTimerElapsedSeconds(timer, nowMs);
+    },
+    [getActiveTimer, nowMs],
+  );
+
+  const hasRunningOrPausedTimer = useMemo(() => {
+    return childIds.some((childId) => Boolean(getActiveTimer(childId)));
+  }, [getActiveTimer]);
+
+  const getAnyActiveTimer = useCallback(() => {
+    return childIds.map((childId) => getActiveTimer(childId)).find((timer): timer is ActiveTimer => Boolean(timer)) ?? null;
+  }, [getActiveTimer]);
+
+  const activeTimer = getAnyActiveTimer();
+  const activeElapsedSeconds = activeTimer ? getTimerElapsedSeconds(activeTimer, nowMs) : 0;
 
   const startTimer = useCallback(
     (childId: ChildId, deviceType: DeviceType): boolean => {
-      if (activeTimer) {
+      if (getActiveTimer(childId)) {
         return false;
       }
 
@@ -128,14 +167,15 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
         status: "running",
       };
 
-      persistActiveTimer(timer);
-      saveTimerToCloud(timer);
+      persistActiveTimer(childId, timer);
+      saveTimerToCloud(childId, timer);
       return true;
     },
-    [activeTimer, getUsedSeconds, getWeeklyLimitSeconds, persistActiveTimer, saveTimerToCloud, weekKey],
+    [getActiveTimer, getUsedSeconds, getWeeklyLimitSeconds, persistActiveTimer, saveTimerToCloud, weekKey],
   );
 
-  const pauseTimer = useCallback(() => {
+  const pauseTimer = useCallback((childId: ChildId) => {
+    const activeTimer = getActiveTimer(childId);
     if (!activeTimer || activeTimer.status !== "running") {
       return;
     }
@@ -146,11 +186,12 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
       status: "paused",
     };
 
-    persistActiveTimer(timer);
-    saveTimerToCloud(timer);
-  }, [activeTimer, persistActiveTimer, saveTimerToCloud]);
+    persistActiveTimer(childId, timer);
+    saveTimerToCloud(childId, timer);
+  }, [getActiveTimer, persistActiveTimer, saveTimerToCloud]);
 
-  const resumeTimer = useCallback(() => {
+  const resumeTimer = useCallback((childId: ChildId) => {
+    const activeTimer = getActiveTimer(childId);
     if (!activeTimer || activeTimer.status !== "paused" || !activeTimer.pausedAt) {
       return;
     }
@@ -169,24 +210,25 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
       status: "running",
     };
 
-    persistActiveTimer(timer);
-    saveTimerToCloud(timer);
-  }, [activeTimer, persistActiveTimer, saveTimerToCloud]);
+    persistActiveTimer(childId, timer);
+    saveTimerToCloud(childId, timer);
+  }, [getActiveTimer, persistActiveTimer, saveTimerToCloud]);
 
   const endTimer = useCallback(
-    (options?: { readonly autoStopped?: boolean }) => {
+    (childId: ChildId, options?: EndTimerOptions) => {
+      const activeTimer = getActiveTimer(childId);
       if (!activeTimer) {
         return null;
       }
 
       const recordedSeconds = getRecordedSeconds(activeTimer.childId);
-      const elapsedSeconds = getActiveElapsedSeconds(activeTimer, Date.now());
+      const elapsedSeconds = getTimerElapsedSeconds(activeTimer, Date.now());
       const availableSeconds = Math.max(0, getWeeklyLimitSeconds(activeTimer.childId) - recordedSeconds);
       const durationSeconds = Math.min(elapsedSeconds, availableSeconds);
       const nextTimer = null;
 
-      persistActiveTimer(nextTimer);
-      saveTimerToCloud(nextTimer);
+      persistActiveTimer(childId, nextTimer);
+      saveTimerToCloud(childId, nextTimer);
 
       if (durationSeconds <= 0) {
         return null;
@@ -208,7 +250,7 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
       saveRecordToCloud(record);
       return record;
     },
-    [activeTimer, getRecordedSeconds, persistActiveTimer, persistRecords, records, saveRecordToCloud, saveTimerToCloud],
+    [getActiveTimer, getRecordedSeconds, getWeeklyLimitSeconds, persistActiveTimer, persistRecords, records, saveRecordToCloud, saveTimerToCloud],
   );
 
   const addManualRecord = useCallback(
@@ -247,25 +289,29 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
       const nextRecords = records.filter((record) => record.childId !== childId);
       persistRecords(nextRecords);
 
-      if (activeTimer?.childId === childId) {
-        persistActiveTimer(null);
-        saveTimerToCloud(null);
+      if (getActiveTimer(childId)) {
+        persistActiveTimer(childId, null);
+        saveTimerToCloud(childId, null);
       }
       clearChildRecordsFromCloud(childId, weekKey);
     },
-    [activeTimer, clearChildRecordsFromCloud, persistActiveTimer, persistRecords, records, saveTimerToCloud, weekKey],
+    [clearChildRecordsFromCloud, getActiveTimer, persistActiveTimer, persistRecords, records, saveTimerToCloud, weekKey],
   );
 
   return {
     activeElapsedSeconds,
     activeTimer,
+    activeTimers,
     addManualRecord,
     cloudEnabled,
     deleteRecord,
     endTimer,
+    getActiveElapsedSeconds,
+    getActiveTimer,
     getRecordedSeconds,
     getWeeklyLimitSeconds,
     getUsedSeconds,
+    hasRunningOrPausedTimer,
     pauseTimer,
     records,
     resetChildWeek,

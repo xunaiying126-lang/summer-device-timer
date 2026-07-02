@@ -13,7 +13,7 @@ type TimerCloudStatus = {
   readonly clearChildRecordsFromCloud: (childId: ChildId, weekKey: string) => void;
   readonly deleteRecordFromCloud: (record: UsageRecord | undefined) => void;
   readonly saveRecordToCloud: (record: UsageRecord) => void;
-  readonly saveTimerToCloud: (timer: ActiveTimer | null) => void;
+  readonly saveTimerToCloud: (childId: ChildId, timer: ActiveTimer | null) => void;
   readonly syncMessage: string;
   readonly syncStatus: SyncStatus;
 };
@@ -52,13 +52,13 @@ export function useTimerCloudStatus(): TimerCloudStatus {
   );
 
   const saveTimerToCloud = useCallback(
-    (timer: ActiveTimer | null) => {
+    (childId: ChildId, timer: ActiveTimer | null) => {
       if (!cloudEnabled) {
         return;
       }
 
       setSyncStatus("saving");
-      void saveCloudActiveTimer(timer).then(markSynced).catch(markError);
+      void saveCloudActiveTimer(childId, timer).then(markSynced).catch(markError);
     },
     [cloudEnabled, markError, markSynced],
   );

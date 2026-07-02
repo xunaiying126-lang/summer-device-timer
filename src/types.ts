@@ -70,6 +70,13 @@ export type ActiveTimer = {
   readonly status: TimerStatus;
 };
 
+export type ActiveTimersByChild = Record<ChildId, ActiveTimer | null>;
+
+export type AppView = {
+  readonly mode: AppMode;
+  readonly childId: ChildId | null;
+};
+
 export type WeekInfo = {
   readonly weekKey: string;
   readonly label: string;

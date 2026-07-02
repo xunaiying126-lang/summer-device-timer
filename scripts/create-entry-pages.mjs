@@ -2,7 +2,7 @@ import { copyFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 
 const distDir = "dist";
-const entryPages = ["child", "parent"];
+const entryPages = ["xushihan", "xumuqiu", "parent"];
 
 await Promise.all(
   entryPages.map(async (page) => {

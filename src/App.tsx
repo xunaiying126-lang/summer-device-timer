@@ -9,21 +9,23 @@ import { TimerPanel } from "./components/TimerPanel";
 import { WeeklyOverview } from "./components/WeeklyOverview";
 import { useDeviceTimer } from "./hooks/useDeviceTimer";
 import { useLearningRewards } from "./hooks/useLearningRewards";
-import type { AppMode, ChildId, DeviceType } from "./types";
-import { getAppModeFromLocation } from "./utils/appMode";
+import type { ChildId, DeviceType } from "./types";
+import { getAppViewFromLocation } from "./utils/appMode";
 import { getWeekInfo } from "./utils/time";
 
 const DEFAULT_CHILD_ID: ChildId = "xsh";
 const DEFAULT_DEVICE: DeviceType = "电视";
 
 export function App() {
-  const appMode = useMemo<AppMode>(() => getAppModeFromLocation(window.location), []);
+  const appView = useMemo(() => getAppViewFromLocation(window.location), []);
+  const appMode = appView.mode;
   const isParentMode = appMode === "parent";
+  const lockedChildId = appView.childId;
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [selectedChildId, setSelectedChildId] = useState<ChildId>(DEFAULT_CHILD_ID);
+  const [selectedChildId, setSelectedChildId] = useState<ChildId>(() => lockedChildId ?? DEFAULT_CHILD_ID);
   const [selectedDevice, setSelectedDevice] = useState<DeviceType>(DEFAULT_DEVICE);
   const [manualModalOpen, setManualModalOpen] = useState(false);
-  const autoStopTimerIdRef = useRef<string | null>(null);
+  const autoStopTimerIdRef = useRef<Set<string>>(new Set());
   const weekInfo = useMemo(() => getWeekInfo(new Date(nowMs)), [nowMs]);
   const selectedChild = CHILDREN_BY_ID[selectedChildId];
   const learning = useLearningRewards(weekInfo.weekKey);
@@ -41,6 +43,10 @@ export function App() {
     () => timer.records.filter((record) => record.childId === selectedChildId),
     [selectedChildId, timer.records],
   );
+  const visibleChildren = useMemo(
+    () => (isParentMode ? CHILDREN : [CHILDREN_BY_ID[lockedChildId ?? DEFAULT_CHILD_ID]]),
+    [isParentMode, lockedChildId],
+  );
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setNowMs(Date.now()), 1000);
@@ -48,29 +54,28 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    document.title = isParentMode ? "家长后台 - 暑假电子产品时间管控" : "孩子端 - 暑假电子产品时间管控";
-  }, [isParentMode]);
+    document.title = isParentMode ? "家长后台 - 暑假电子产品时间管控" : `${selectedChild.name}端 - 暑假电子产品时间管控`;
+  }, [isParentMode, selectedChild.name]);
 
   useEffect(() => {
-    if (!timer.activeTimer || timer.activeTimer.weekKey !== weekInfo.weekKey) {
-      return;
-    }
+    CHILDREN.forEach((child) => {
+      const activeTimer = timer.getActiveTimer(child.id);
+      if (!activeTimer || activeTimer.weekKey !== weekInfo.weekKey || activeTimer.status !== "running") {
+        return;
+      }
 
-    if (timer.activeTimer.status !== "running") {
-      return;
-    }
+      if (timer.getUsedSeconds(activeTimer.childId) < timer.getWeeklyLimitSeconds(activeTimer.childId)) {
+        return;
+      }
 
-    if (timer.getUsedSeconds(timer.activeTimer.childId) < timer.getWeeklyLimitSeconds(timer.activeTimer.childId)) {
-      return;
-    }
+      if (autoStopTimerIdRef.current.has(activeTimer.id)) {
+        return;
+      }
 
-    if (autoStopTimerIdRef.current === timer.activeTimer.id) {
-      return;
-    }
-
-    autoStopTimerIdRef.current = timer.activeTimer.id;
-    timer.endTimer({ autoStopped: true });
-    window.alert("本周额度已用完，请休息眼睛，去做别的事情吧");
+      autoStopTimerIdRef.current.add(activeTimer.id);
+      timer.endTimer(activeTimer.childId, { autoStopped: true });
+      window.alert("本周额度已用完，请休息眼睛，去做别的事情吧");
+    });
   }, [timer, weekInfo.weekKey]);
 
   const handleStart = () => {
@@ -81,7 +86,7 @@ export function App() {
   };
 
   const handleEnd = () => {
-    timer.endTimer();
+    timer.endTimer(selectedChildId);
   };
 
   const handleManualSubmit = (input: {
@@ -135,24 +140,34 @@ export function App() {
 
   return (
     <main className={`app-shell app-shell--${appMode}`}>
-      <Header mode={appMode} weekInfo={weekInfo} syncStatus={timer.syncStatus} syncMessage={timer.syncMessage} />
+      <Header
+        mode={appMode}
+        child={isParentMode ? null : selectedChild}
+        weekInfo={weekInfo}
+        syncStatus={timer.syncStatus}
+        syncMessage={timer.syncMessage}
+      />
 
       <section className="children-grid" aria-label="孩子选择">
-        {CHILDREN.map((child) => (
+        {visibleChildren.map((child) => (
           <ChildCard
             child={child}
             key={child.id}
             limitSeconds={timer.getWeeklyLimitSeconds(child.id)}
             selected={child.id === selectedChildId}
             usedSeconds={timer.getUsedSeconds(child.id)}
-            onSelect={() => setSelectedChildId(child.id)}
+            onSelect={() => {
+              if (isParentMode) {
+                setSelectedChildId(child.id);
+              }
+            }}
           />
         ))}
       </section>
 
       <TimerPanel
-        activeElapsedSeconds={timer.activeElapsedSeconds}
-        activeTimer={timer.activeTimer}
+        activeElapsedSeconds={timer.getActiveElapsedSeconds(selectedChildId)}
+        activeTimer={timer.getActiveTimer(selectedChildId)}
         mode={appMode}
         selectedChild={selectedChild}
         selectedDevice={selectedDevice}
@@ -160,8 +175,8 @@ export function App() {
         usedSeconds={selectedUsedSeconds}
         onDeviceChange={setSelectedDevice}
         onStart={handleStart}
-        onPause={timer.pauseTimer}
-        onResume={timer.resumeTimer}
+        onPause={() => timer.pauseTimer(selectedChildId)}
+        onResume={() => timer.resumeTimer(selectedChildId)}
         onEnd={handleEnd}
         {...(isParentMode ? { onOpenManual: () => setManualModalOpen(true), onReset: handleReset } : {})}
       />
@@ -181,7 +196,7 @@ export function App() {
       <section className="lower-grid">
         <RecordsList records={selectedRecords} {...(isParentMode ? { onDelete: handleDeleteRecord } : {})} />
         <WeeklyOverview
-          children={CHILDREN}
+          children={visibleChildren}
           getLimitSeconds={timer.getWeeklyLimitSeconds}
           getUsedSeconds={timer.getUsedSeconds}
         />

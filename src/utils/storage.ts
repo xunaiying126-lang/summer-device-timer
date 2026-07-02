@@ -1,4 +1,4 @@
-import type { ActiveTimer, LearningTaskCompletion, UsageRecord } from "../types";
+import type { ActiveTimer, ActiveTimersByChild, ChildId, LearningTaskCompletion, UsageRecord } from "../types";
 import { parseActiveTimer, parseLearningTaskCompletions, parseRecords } from "./guards";
 import { sortRecords } from "./time";
 
@@ -25,7 +25,11 @@ function learningCompletionsKey(weekKey: string): string {
   return `${STORAGE_PREFIX}:learning:${weekKey}`;
 }
 
-const activeTimerKey = `${STORAGE_PREFIX}:activeTimer`;
+const childIds: readonly ChildId[] = ["xsh", "xmq"];
+
+function activeTimerKey(childId: ChildId): string {
+  return `${STORAGE_PREFIX}:activeTimer:${childId}`;
+}
 
 export function loadRecords(weekKey: string): UsageRecord[] {
   return sortRecords(parseRecords(safeParse(localStorage.getItem(recordsKey(weekKey))), weekKey));
@@ -49,15 +53,21 @@ export function saveLearningTaskCompletions(
   localStorage.setItem(learningCompletionsKey(weekKey), JSON.stringify(completions));
 }
 
-export function loadActiveTimer(): ActiveTimer | null {
-  return parseActiveTimer(safeParse(localStorage.getItem(activeTimerKey)));
+export function loadActiveTimers(): ActiveTimersByChild {
+  return childIds.reduce<ActiveTimersByChild>(
+    (timers, childId) => ({
+      ...timers,
+      [childId]: parseActiveTimer(safeParse(localStorage.getItem(activeTimerKey(childId)))),
+    }),
+    { xsh: null, xmq: null },
+  );
 }
 
-export function saveActiveTimer(timer: ActiveTimer | null): void {
+export function saveActiveTimer(childId: ChildId, timer: ActiveTimer | null): void {
   if (!timer) {
-    localStorage.removeItem(activeTimerKey);
+    localStorage.removeItem(activeTimerKey(childId));
     return;
   }
 
-  localStorage.setItem(activeTimerKey, JSON.stringify(timer));
+  localStorage.setItem(activeTimerKey(childId), JSON.stringify(timer));
 }
