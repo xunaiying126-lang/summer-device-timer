@@ -15,6 +15,10 @@
   --dark-red: #a92724;
   --game-board: #e9f7f1;
   --game-cell: #fbfefe;
+  --game-board-3d: #dff5ec;
+  --game-grid: #8fcfc1;
+  --game-obstacle: #60788a;
+  --game-glow: rgba(8, 127, 140, 0.2);
   --shadow: 0 12px 28px rgba(42, 78, 104, 0.12);
   --radius: 8px;
   color: var(--text);
@@ -666,64 +670,51 @@ button:disabled {
   gap: 12px;
 }
 
-.snake-board {
-  display: grid;
-  grid-template-columns: repeat(15, 1fr);
+.snake-3d-stage {
+  position: relative;
   aspect-ratio: 1;
-  width: min(100%, 520px);
+  width: min(100%, 560px);
+  min-height: 300px;
   overflow: hidden;
+  justify-self: center;
   border: 1px solid #cfe2dc;
   border-radius: var(--radius);
-  background: var(--game-board);
-  box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.56);
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.92), transparent 31%),
+    radial-gradient(circle at 72% 24%, rgba(143, 207, 193, 0.46), transparent 33%),
+    linear-gradient(145deg, #f8fdfb, var(--surface-blue));
+  box-shadow:
+    inset 0 0 0 6px rgba(255, 255, 255, 0.58),
+    0 16px 32px var(--game-glow);
 }
 
-.snake-cell {
-  position: relative;
-  min-width: 0;
-  min-height: 0;
-  border: 1px solid rgba(215, 227, 236, 0.62);
-  background: var(--game-cell);
-}
-
-.snake-cell--body,
-.snake-cell--head,
-.snake-cell--food,
-.snake-cell--obstacle {
-  border-color: transparent;
-}
-
-.snake-cell--body::after,
-.snake-cell--head::after,
-.snake-cell--food::after,
-.snake-cell--obstacle::after {
+.snake-3d-stage::after {
   position: absolute;
+  inset: 0;
+  pointer-events: none;
   content: "";
-  inset: 14%;
-  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent 42%),
+    radial-gradient(circle at 50% 104%, rgba(8, 127, 140, 0.16), transparent 48%);
 }
 
-.snake-cell--body::after {
-  background: linear-gradient(145deg, var(--primary), var(--green));
-  box-shadow: 0 3px 8px rgba(8, 127, 140, 0.2);
-}
-
-.snake-cell--head::after {
-  inset: 10%;
-  background: linear-gradient(145deg, var(--primary-strong), #0d4b86);
-  box-shadow: 0 4px 10px rgba(13, 75, 134, 0.24);
-}
-
-.snake-cell--food::after {
-  inset: 18%;
+.snake-3d-stage--loading::before {
+  position: absolute;
+  inset: 38%;
+  content: "";
+  border: 3px solid rgba(8, 127, 140, 0.16);
+  border-top-color: var(--primary);
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff8df, var(--orange) 62%, #c96b14);
-  box-shadow: 0 4px 10px rgba(239, 143, 37, 0.28);
+  animation: spin 900ms linear infinite;
 }
 
-.snake-cell--obstacle::after {
-  inset: 18%;
-  background: linear-gradient(145deg, #8aa2b2, #60788a);
+.snake-canvas {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
 }
 
 .snake-side {
@@ -1249,7 +1240,7 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
-  .snake-board {
+  .snake-3d-stage {
     width: min(100%, 620px);
     justify-self: center;
   }
@@ -1484,5 +1475,9 @@ button:disabled {
   .snake-dpad {
     grid-template-columns: repeat(3, 46px);
     grid-template-rows: repeat(2, 42px);
+  }
+
+  .snake-3d-stage {
+    min-height: 286px;
   }
 }

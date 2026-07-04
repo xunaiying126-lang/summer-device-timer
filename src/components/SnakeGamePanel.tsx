@@ -1,8 +1,14 @@
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Gamepad2, Pause, Play, RotateCcw, Square, Trophy } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { SNAKE_DEVICE_TYPE } from "../constants";
 import type { ActiveTimer, AppMode, Child } from "../types";
 import { formatClock, formatCompactDuration } from "../utils/time";
+
+const ThreeSnakeScene = lazy(() =>
+  import("./ThreeSnakeScene").then((module) => ({
+    default: module.ThreeSnakeScene,
+  })),
+);
 
 type Position = {
   readonly row: number;
@@ -237,8 +243,6 @@ export function SnakeGamePanel({
   const hasOtherTimer = Boolean(activeTimer && !isSnakeTimer);
   const level = getLevel(game.levelIndex);
   const progressPercent = Math.min(100, Math.round((game.applesInLevel / level.target) * 100));
-  const snakeCells = useMemo(() => new Set(game.snake.map(positionKey)), [game.snake]);
-  const obstacleCells = useMemo(() => new Set(game.obstacles.map(positionKey)), [game.obstacles]);
 
   const setDirection = useCallback((direction: Direction) => {
     setGame((current) => {
@@ -360,39 +364,28 @@ export function SnakeGamePanel({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [setDirection]);
 
-  const cells = [];
-  for (let row = 0; row < BOARD_SIZE; row += 1) {
-    for (let col = 0; col < BOARD_SIZE; col += 1) {
-      const position = { row, col };
-      const key = positionKey(position);
-      const isHead = isSamePosition(game.snake[0] ?? START_HEAD, position);
-      const className = [
-        "snake-cell",
-        snakeCells.has(key) ? "snake-cell--body" : "",
-        isHead ? "snake-cell--head" : "",
-        obstacleCells.has(key) ? "snake-cell--obstacle" : "",
-        isSamePosition(game.food, position) ? "snake-cell--food" : "",
-      ].filter(Boolean).join(" ");
-
-      cells.push(<span className={className} key={key} />);
-    }
-  }
-
   return (
     <section className="snake-panel" aria-label={`${child.name}贪吃蛇闯关`}>
       <div className="panel-heading panel-heading--stacked">
         <div>
-          <h2>贪吃蛇闯关小游戏</h2>
-          <p>吃到目标食物后进入下一关，游戏时间会计入本周电子产品时间。</p>
+          <h2>3D 贪吃蛇闯关小游戏</h2>
+          <p>在立体棋盘里躲开障碍、收集食物，游戏时间会计入本周电子产品时间。</p>
         </div>
         <span className={`snake-status snake-status--${game.phase}`}>{getPhaseLabel(game.phase)}</span>
       </div>
 
       <div className="snake-layout">
         <div className="snake-board-wrap">
-          <div className="snake-board" aria-label="贪吃蛇游戏棋盘">
-            {cells}
-          </div>
+          <Suspense fallback={<div className="snake-3d-stage snake-3d-stage--loading" aria-label="3D 贪吃蛇游戏场景加载中" />}>
+            <ThreeSnakeScene
+              boardSize={BOARD_SIZE}
+              food={game.food}
+              obstacles={game.obstacles}
+              onDirectionChange={setDirection}
+              phase={game.phase}
+              snake={game.snake}
+            />
+          </Suspense>
           <div className="snake-dpad" aria-label="方向控制">
             <button type="button" className="snake-dpad__button snake-dpad__button--up" aria-label="向上" title="向上" onClick={() => setDirection("up")}>
               <ArrowUp aria-hidden="true" size={20} />

@@ -28,6 +28,10 @@ The app has three linked data surfaces with separate public entries: Xu Shihan c
 | Error strong | --dark-red | #a92724 | #ff9b94 | Used-up quota |
 | Game board | --game-board | #e9f7f1 | #173127 | Snake board surface |
 | Game cell | --game-cell | #fbfefe | #203a34 | Snake board cells |
+| Game board 3D | --game-board-3d | #dff5ec | #18392e | WebGL snake board material |
+| Game grid 3D | --game-grid | #8fcfc1 | #3f7770 | WebGL snake grid lines |
+| Game obstacle | --game-obstacle | #60788a | #8aa2b2 | WebGL obstacle blocks |
+| Game glow | --game-glow | rgba(8, 127, 140, 0.2) | rgba(37, 182, 195, 0.22) | 3D stage glow and depth |
 
 ### Rules
 
@@ -121,10 +125,10 @@ All spacing derives from 4px.
 
 ### Snake Game Panel
 
-- Structure: game board, current level, food target progress, elapsed timer, directional controls, and game action buttons.
+- Structure: WebGL 3D game scene, current level, food target progress, elapsed timer, directional controls, and game action buttons.
 - Variants: ready, playing, paused, level clear, completed, and lost.
 - States: playing uses the same timer state as device usage; pausing, ending, losing, or completing the game must pause or end the active timer.
-- Accessibility: directional controls are real buttons with icon labels; keyboard arrow and WASD control the same state.
+- Accessibility: directional controls are real buttons with icon labels; keyboard arrow, WASD, and touch swipes control the same state.
 - Rule: child views can play; parent backend sees game time through timer status and records rather than a playable child game surface.
 
 ## 6. Motion & Interaction
