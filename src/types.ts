@@ -1,6 +1,6 @@
 export type ChildId = "xsh" | "xmq";
 
-export type DeviceType = "电视" | "手机" | "平板" | "电脑" | "游戏机" | "其他";
+export type DeviceType = "电视" | "手机" | "平板" | "电脑" | "游戏机" | "贪吃蛇" | "其他";
 
 export type TimerStatus = "running" | "paused";
 

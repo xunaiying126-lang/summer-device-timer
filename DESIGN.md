@@ -26,6 +26,8 @@ The app has three linked data surfaces with separate public entries: Xu Shihan c
 | Warning | --orange | #ef8f25 | #ffb15f | Nearly used quota |
 | Error | --red | #e64a45 | #ff7b74 | Overtime and destructive states |
 | Error strong | --dark-red | #a92724 | #ff9b94 | Used-up quota |
+| Game board | --game-board | #e9f7f1 | #173127 | Snake board surface |
+| Game cell | --game-cell | #fbfefe | #203a34 | Snake board cells |
 
 ### Rules
 
@@ -116,6 +118,14 @@ All spacing derives from 4px.
 - Structure: task title, requirement, reward value, completion button.
 - Variants: pending and completed.
 - States: completed task turns green; the same task can be checked again on a later day, so the child can repeat daily progress across the week.
+
+### Snake Game Panel
+
+- Structure: game board, current level, food target progress, elapsed timer, directional controls, and game action buttons.
+- Variants: ready, playing, paused, level clear, completed, and lost.
+- States: playing uses the same timer state as device usage; pausing, ending, losing, or completing the game must pause or end the active timer.
+- Accessibility: directional controls are real buttons with icon labels; keyboard arrow and WASD control the same state.
+- Rule: child views can play; parent backend sees game time through timer status and records rather than a playable child game surface.
 
 ## 6. Motion & Interaction
 

@@ -12,6 +12,7 @@ import type { Child, ChildId, DeviceOption, DeviceType, LearningTask } from "./t
 
 export const WEEKLY_LIMIT_SECONDS = 90 * 60;
 export const LEARNING_REWARD_SECONDS = 10 * 60;
+export const SNAKE_DEVICE_TYPE: DeviceType = "贪吃蛇";
 
 export const CHILDREN_BY_ID = {
   xsh: {
@@ -36,6 +37,7 @@ export const DEVICE_OPTIONS: DeviceOption[] = [
   { type: "平板", label: "平板" },
   { type: "电脑", label: "电脑" },
   { type: "游戏机", label: "游戏机" },
+  { type: SNAKE_DEVICE_TYPE, label: SNAKE_DEVICE_TYPE },
   { type: "其他", label: "其他" },
 ];
 
@@ -45,6 +47,7 @@ export const DEVICE_ICONS: Record<DeviceType, LucideIcon> = {
   平板: Tablet,
   电脑: Laptop,
   游戏机: Gamepad2,
+  贪吃蛇: Gamepad2,
   其他: MoreHorizontal,
 };
 

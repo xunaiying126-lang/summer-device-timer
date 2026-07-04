@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CHILDREN, CHILDREN_BY_ID, WEEKLY_LIMIT_SECONDS } from "./constants";
+import { CHILDREN, CHILDREN_BY_ID, SNAKE_DEVICE_TYPE, WEEKLY_LIMIT_SECONDS } from "./constants";
 import { ChildCard } from "./components/ChildCard";
 import { Header } from "./components/Header";
 import { LearningTasksPanel } from "./components/LearningTasksPanel";
 import { ManualEntryModal } from "./components/ManualEntryModal";
 import { RecordsList } from "./components/RecordsList";
+import { SnakeGamePanel } from "./components/SnakeGamePanel";
 import { TimerPanel } from "./components/TimerPanel";
 import { WeeklyOverview } from "./components/WeeklyOverview";
 import { useDeviceTimer } from "./hooks/useDeviceTimer";
@@ -87,6 +88,19 @@ export function App() {
 
   const handleEnd = () => {
     timer.endTimer(selectedChildId);
+  };
+
+  const handleStartSnakeGame = () => {
+    const started = timer.startTimer(selectedChildId, SNAKE_DEVICE_TYPE);
+    if (started) {
+      setSelectedDevice(SNAKE_DEVICE_TYPE);
+      return true;
+    }
+
+    if (selectedUsedSeconds >= selectedLimitSeconds) {
+      window.alert("本周电子产品时间已用完");
+    }
+    return false;
   };
 
   const handleManualSubmit = (input: {
@@ -180,6 +194,21 @@ export function App() {
         onEnd={handleEnd}
         {...(isParentMode ? { onOpenManual: () => setManualModalOpen(true), onReset: handleReset } : {})}
       />
+
+      {!isParentMode ? (
+        <SnakeGamePanel
+          activeElapsedSeconds={timer.getActiveElapsedSeconds(selectedChildId)}
+          activeTimer={timer.getActiveTimer(selectedChildId)}
+          child={selectedChild}
+          mode={appMode}
+          usedSeconds={selectedUsedSeconds}
+          weeklyLimitSeconds={selectedLimitSeconds}
+          onStartGame={handleStartSnakeGame}
+          onPauseGame={() => timer.pauseTimer(selectedChildId)}
+          onResumeGame={() => timer.resumeTimer(selectedChildId)}
+          onEndGame={() => timer.endTimer(selectedChildId)}
+        />
+      ) : null}
 
       <LearningTasksPanel
         bonusSeconds={learning.getBonusSeconds(selectedChildId)}

@@ -10,7 +10,7 @@ import type {
 } from "../types";
 
 const childIds = new Set<string>(["xsh", "xmq"]);
-const deviceTypes = new Set<string>(["电视", "手机", "平板", "电脑", "游戏机", "其他"]);
+const deviceTypes = new Set<string>(["电视", "手机", "平板", "电脑", "游戏机", "贪吃蛇", "其他"]);
 const timerStatuses = new Set<string>(["running", "paused"]);
 const manualKinds = new Set<string>(["add", "subtract"]);
 const learningTaskIds = new Set<string>([
