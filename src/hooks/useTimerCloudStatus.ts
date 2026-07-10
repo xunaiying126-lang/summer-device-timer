@@ -12,6 +12,8 @@ type TimerCloudStatus = {
   readonly cloudEnabled: boolean;
   readonly clearChildRecordsFromCloud: (childId: ChildId, weekKey: string) => void;
   readonly deleteRecordFromCloud: (record: UsageRecord | undefined) => void;
+  readonly markCloudError: (error: unknown) => void;
+  readonly markCloudReady: () => void;
   readonly saveRecordToCloud: (record: UsageRecord) => void;
   readonly saveTimerToCloud: (childId: ChildId, timer: ActiveTimer | null) => void;
   readonly syncMessage: string;
@@ -91,6 +93,8 @@ export function useTimerCloudStatus(): TimerCloudStatus {
     cloudEnabled,
     clearChildRecordsFromCloud,
     deleteRecordFromCloud,
+    markCloudError: markError,
+    markCloudReady: markSynced,
     saveRecordToCloud,
     saveTimerToCloud,
     syncMessage,

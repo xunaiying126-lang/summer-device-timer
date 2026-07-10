@@ -20,6 +20,8 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
     clearChildRecordsFromCloud,
     cloudEnabled,
     deleteRecordFromCloud,
+    markCloudError,
+    markCloudReady,
     saveRecordToCloud,
     saveTimerToCloud,
     syncMessage,
@@ -65,10 +67,11 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
       weekKey,
       (cloudRecords) => {
         persistRecords(cloudRecords);
+        markCloudReady();
       },
-      () => undefined,
+      markCloudError,
     );
-  }, [cloudEnabled, persistRecords, weekKey]);
+  }, [cloudEnabled, markCloudError, markCloudReady, persistRecords, weekKey]);
 
   useEffect(() => {
     if (!cloudEnabled) {
@@ -96,10 +99,11 @@ export function useDeviceTimer(weekKey: string, nowMs: number, weeklyLimitSecond
           childIds.forEach((childId) => saveActiveTimer(childId, nextTimers[childId]));
           return nextTimers;
         });
+        markCloudReady();
       },
-      () => undefined,
+      markCloudError,
     );
-  }, [cloudEnabled, records, saveTimerToCloud, weekKey]);
+  }, [cloudEnabled, markCloudError, markCloudReady, records, saveTimerToCloud, weekKey]);
 
   const getActiveTimer = useCallback(
     (childId: ChildId) => {
