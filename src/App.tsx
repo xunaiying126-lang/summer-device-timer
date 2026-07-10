@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CHILDREN, CHILDREN_BY_ID, SNAKE_DEVICE_TYPE, WEEKLY_LIMIT_SECONDS } from "./constants";
 import { ChildCard } from "./components/ChildCard";
+import { FamilySummary } from "./components/FamilySummary";
 import { Header } from "./components/Header";
 import { LearningTasksPanel } from "./components/LearningTasksPanel";
 import { ManualEntryModal } from "./components/ManualEntryModal";
+import { PageJumpNav } from "./components/PageJumpNav";
 import { RecordsList } from "./components/RecordsList";
 import { SnakeGamePanel } from "./components/SnakeGamePanel";
 import { TimerPanel } from "./components/TimerPanel";
@@ -161,6 +163,18 @@ export function App() {
         syncStatus={timer.syncStatus}
         syncMessage={timer.syncMessage}
       />
+
+      <PageJumpNav mode={appMode} />
+
+      {isParentMode ? (
+        <FamilySummary
+          activeTimer={timer.activeTimer}
+          children={CHILDREN}
+          getLimitSeconds={timer.getWeeklyLimitSeconds}
+          getTodayCompletedCount={learning.getTodayCompletedCount}
+          getUsedSeconds={timer.getUsedSeconds}
+        />
+      ) : null}
 
       <section className="children-grid" aria-label="孩子选择">
         {visibleChildren.map((child) => (

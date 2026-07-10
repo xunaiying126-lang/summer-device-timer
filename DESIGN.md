@@ -85,6 +85,7 @@ All spacing derives from 4px.
 - Desktop: two-column child cards, two-column lower panels.
 - Tablet: timer panel collapses to one column around 1100px; child cards stay in two columns until about 760px.
 - Mobile: all primary sections collapse to one column at 760px and below, and records turn into stacked cards around 720px.
+- Child mobile: the identity card and timer controls use a compact density so the primary action appears near the first viewport.
 
 ### Rules
 
@@ -117,11 +118,24 @@ All spacing derives from 4px.
 - Variants: sun and leaf avatar tones.
 - States: selected outline and hover lift.
 
+### Page Jump Navigation
+
+- Structure: a sticky row of icon-and-label anchors for timer, game, learning, records, or family overview.
+- Variants: child navigation includes the game; parent navigation replaces it with family overview.
+- States: hover and keyboard focus use the primary surface treatment.
+- Accessibility: semantic `<nav>` and anchors preserve native browser navigation and smooth-scroll only when reduced motion is not requested.
+
+### Family Summary
+
+- Structure: a compact parent-only data band for total use, total remaining time, today's learning check-ins, and active timer state.
+- Rule: it summarizes existing timer and learning data without creating a second source of truth.
+
 ### Learning Task Card
 
 - Structure: task title, requirement, reward value, completion button.
 - Variants: pending and completed.
 - States: completed task turns green; the same task can be checked again on a later day, so the child can repeat daily progress across the week.
+- Mobile: the completion control stays inline when space allows, and weekly history is collapsed behind a native disclosure control.
 
 ### Snake Game Panel
 
@@ -144,6 +158,7 @@ All spacing derives from 4px.
 
 - Motion stays subtle and functional.
 - Do not animate layout-heavy properties.
+- Section navigation uses smooth scrolling, with an automatic reduced-motion fallback.
 
 ## 7. Depth & Surface
 

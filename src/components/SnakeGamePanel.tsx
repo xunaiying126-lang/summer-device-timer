@@ -365,7 +365,7 @@ export function SnakeGamePanel({
   }, [setDirection]);
 
   return (
-    <section className="snake-panel" aria-label={`${child.name}贪吃蛇闯关`}>
+    <section className="snake-panel" id="game" aria-label={`${child.name}贪吃蛇闯关`}>
       <div className="panel-heading panel-heading--stacked">
         <div>
           <h2>3D 贪吃蛇闯关小游戏</h2>

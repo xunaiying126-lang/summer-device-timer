@@ -39,7 +39,7 @@ export function LearningTasksPanel({
   todayCompletedCount,
 }: LearningTasksPanelProps) {
   return (
-    <section className="learning-panel" aria-label={`${child.name}学习任务`}>
+    <section className="learning-panel" id="learning" aria-label={`${child.name}学习任务`}>
       <div className="panel-heading panel-heading--stacked">
         <div>
           <h2>{child.name}学习任务打卡</h2>
@@ -78,31 +78,36 @@ export function LearningTasksPanel({
                 aria-label={`${completed ? "取消今日打卡" : "今日打卡"}${task.title}`}
               >
                 {completed ? <CheckCircle2 aria-hidden="true" size={18} /> : <Circle aria-hidden="true" size={18} />}
-                {completed ? "今日已打卡" : "打卡"}
+                {completed ? "已完成" : "打卡"}
               </button>
             </article>
           );
         })}
       </div>
 
-      <div className="learning-history" aria-label={`${child.name}本周打卡记录`}>
-        <strong>本周打卡记录</strong>
-        {completions.length > 0 ? (
-          <ul>
-            {completions.slice(0, 10).map((completion) => {
-              const task = LEARNING_TASKS.find((item) => item.id === completion.taskId);
-              return (
-                <li key={completion.id}>
-                  <span>{completion.dateKey}</span>
-                  <span>{task?.title ?? "学习任务"}</span>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p>本周还没有学习打卡。</p>
-        )}
-      </div>
+      <details className="learning-history">
+        <summary>
+          <strong>本周打卡记录</strong>
+          <span>{completions.length} 条</span>
+        </summary>
+        <div className="learning-history__content" aria-label={`${child.name}本周打卡记录`}>
+          {completions.length > 0 ? (
+            <ul>
+              {completions.slice(0, 10).map((completion) => {
+                const task = LEARNING_TASKS.find((item) => item.id === completion.taskId);
+                return (
+                  <li key={completion.id}>
+                    <span>{completion.dateKey}</span>
+                    <span>{task?.title ?? "学习任务"}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p>本周还没有学习打卡。</p>
+          )}
+        </div>
+      </details>
     </section>
   );
 }

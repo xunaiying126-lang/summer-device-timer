@@ -11,7 +11,7 @@ export function RecordsList({ records, onDelete }: RecordsListProps) {
   const canDelete = Boolean(onDelete);
 
   return (
-    <section className="records-panel">
+    <section className="records-panel" id="records">
       <div className="panel-heading">
         <h2>本周记录</h2>
         <span>{records.length} 条</span>

@@ -48,7 +48,7 @@ export function TimerPanel({
   const timerValue = isSelectedTimer ? activeElapsedSeconds : 0;
 
   return (
-    <section className="timer-panel" aria-label={`正在管理：${selectedChild.name}`}>
+    <section className="timer-panel" id="timer" aria-label={`正在管理：${selectedChild.name}`}>
       <div className="timer-panel__main">
         <div className="section-label">{mode === "parent" ? "家长后台" : "正在管理"}：{selectedChild.name}</div>
         <div className="timer-display" aria-live="polite">
